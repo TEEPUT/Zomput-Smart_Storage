@@ -4,6 +4,8 @@
 
 **Mod ID:** `ZomputSmartStorage`
 
+**Workshop ID:** `3820062699` · [스팀 창작마당](https://steamcommunity.com/sharedfiles/filedetails/?id=3820062699)
+
 ## 사용 방법
 
 1. 내 인벤토리 창에서 정리할 탭을 선택합니다. 가방 탭을 보고 있다면 그 가방 안의 아이템만 대상입니다.
@@ -29,7 +31,7 @@
 
 ## 설치
 
-로컬 설치는 `Contents/mods/ZomputSmartStorage` 폴더를 게임 사용자 폴더의 `Zomboid/mods/` 아래에 복사하고 게임에서 모드를 활성화합니다. 멀티에서는 서버와 접속 클라이언트 모두 같은 버전이 필요합니다. 서버 설정의 `Mods`에 `ZomputSmartStorage`를 추가합니다. 창작마당 ID는 실제 게시 후 제공됩니다.
+로컬 설치는 `Contents/mods/ZomputSmartStorage` 폴더를 게임 사용자 폴더의 `Zomboid/mods/` 아래에 복사하고 게임에서 모드를 활성화합니다. 멀티에서는 서버와 접속 클라이언트 모두 같은 버전이 필요합니다. 서버 설정의 `Mods`에 `ZomputSmartStorage`, `WorkshopItems`에 `3820062699`를 추가합니다.
 
 자동화 배포 파일에는 사용자별 경로, 서버 주소, 인증 정보가 필요하지 않습니다. 이 저장소에는 모드 소스·설명·테스트·배포 패키지 생성 도구만 포함합니다.
 

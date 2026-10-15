@@ -17,7 +17,8 @@ def main():
     PACKAGE.mkdir()
     source = ROOT / 'Contents/mods/ZomputSmartStorage'
     target = PACKAGE / 'Contents/mods/ZomputSmartStorage'
-    shutil.copytree(source, target, ignore=shutil.ignore_patterns('.keep', '*.log', '__pycache__'))
+    # Keep directory placeholders: Workshop downloads may omit completely empty folders.
+    shutil.copytree(source, target, ignore=shutil.ignore_patterns('*.log', '__pycache__'))
     for name in ('workshop.txt', 'preview.png'):
         shutil.copy2(ROOT / name, PACKAGE / name)
     with zipfile.ZipFile(DIST / 'Zomput-Smart_Storage.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
