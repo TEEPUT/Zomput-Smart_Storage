@@ -1,10 +1,16 @@
 # Zomput-Smart_Storage
 
+![Zomput Smart Storage](preview.png)
+
 프로젝트 좀보이드 **Build 42.21 / 42.21.0**, 싱글 및 멀티플레이용 스마트 보관함 모드입니다.
 
 **Mod ID:** `ZomputSmartStorage`
 
 **Workshop ID:** `3820062699` · [스팀 창작마당](https://steamcommunity.com/sharedfiles/filedetails/?id=3820062699)
+
+![선택한 탭에서 종류 등록 후 자동정리하는 3단계 안내](docs/media/workshop-quickstart.jpg)
+
+대표 이미지와 안내 이미지는 AI 생성 기능 일러스트입니다. 실제 게임 화면은 아닙니다. [원본 이미지와 생성 프롬프트](docs/ARTWORK.md) · [창작마당 설명 원문](docs/workshop-description.bbcode)
 
 ## 사용 방법
 
