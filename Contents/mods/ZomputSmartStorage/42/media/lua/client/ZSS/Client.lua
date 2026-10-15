@@ -64,7 +64,6 @@ local function addContainerOptions(context, playerNum, container, label)
         menu = ISContextMenu:getNew(context)
         context:addSubMenu(option, menu)
     end
-    menu:addOption(ZSS.text("Sort"), playerNum, ZSS.sortInto, container)
     menu:addOption(ZSS.text("Settings"), playerNum, ZSS.openSettings, container)
 end
 
@@ -105,4 +104,5 @@ end
 
 Events.OnPreFillWorldObjectContextMenu.Add(ZSS.onWorldMenu)
 Events.OnFillInventoryObjectContextMenu.Add(ZSS.onInventoryMenu)
-print("[ZomputSmartStorage] Client UI loaded (1.1.0, Build 42.21).")
+require "ZSS/LootButton"
+print("[ZomputSmartStorage] Client UI loaded (1.1.1, Build 42.21).")

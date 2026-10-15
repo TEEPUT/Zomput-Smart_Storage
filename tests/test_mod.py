@@ -14,7 +14,7 @@ class ModTests(unittest.TestCase):
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.lua.execute((ROOT / 'tests/harness.lua').read_text(encoding='utf-8'))
         for name in ['shared/ZSS/Categories.lua', 'shared/ZSS/Core.lua', 'shared/ZSS/Service.lua',
-                     'client/ZSS/Window.lua', 'client/ZSS/Client.lua']:
+                     'client/ZSS/Window.lua', 'client/ZSS/Client.lua', 'client/ZSS/LootButton.lua']:
             self.lua.execute((LUA / name).read_text(encoding='utf-8'))
         self.lua.execute('W = makeWorld(); Z = ZomputSmartStorage')
 
@@ -424,6 +424,69 @@ class ModTests(unittest.TestCase):
     def test_required_mod_metadata(self):
         info = (LUA.parents[1] / 'mod.info').read_text(encoding='utf-8')
         self.assertIn('require=BetterSortCC', info.splitlines())
+
+    def setup_loot_page(self):
+        self.check('''
+            getSpecificPlayer = function() return W.player end
+            P = setmetatable({player = 0, title = 'Shelf', width = 360, font = UIFont.Small,
+                inventoryPane = {inventory = W.destination}, children = {},
+                addChild = function(self, child) self.children[#self.children + 1] = child end,
+                titleBarHeight = function() return 20 end}, {__index = ISInventoryPage})
+        ''')
+
+    def test_loot_button_follows_title_and_reuses_existing_control(self):
+        self.setup_loot_page()
+        self.check('''
+            P:prerender()
+            local button = P.zssSortButton
+            assert(button.visible and button.enabled and #P.children == 1)
+            assert(P.drawnX + 6 == button.x and button.x + button.width == 240)
+            assert(button.height == 18 and not P.zssCaptureTitle)
+            P:prerender(); assert(#P.children == 1)
+            P.zssCaptureTitle = true
+            assert(Z.lootTitlePosition(P, 'Shelf', 20, 1, false) == 20)
+            assert(button.x == 20 + 5 * 6 + 6)
+            P.zssCaptureTitle = true
+            assert(Z.lootTitlePosition(P, 'Unrelated', 100, 1, true) == 100)
+        ''')
+
+    def test_loot_button_hides_on_unsupported_tabs_and_disables_when_inaccessible(self):
+        self.setup_loot_page()
+        self.check('''
+            P:prerender(); local button = P.zssSortButton
+            P.inventoryPane.inventory = W.container(nil, 'floor')
+            P:prerender(); assert(not button.visible)
+            P.inventoryPane.inventory = W.destination
+            W.player.dead = true; P:prerender()
+            assert(button.visible and not button.enabled)
+            local ownPage = {onCharacter = true}
+            Z.prepareLootSortButton(ownPage); assert(not ownPage.zssSortButton)
+        ''')
+
+    def test_loot_button_resolves_current_tab_at_click_time(self):
+        self.setup_loot_page()
+        self.check('''
+            P:prerender()
+            local second = W.container(W.object, 'freezer'); W.object.containers[2] = second
+            P.inventoryPane.inventory = second
+            local called = 0
+            Z.sortInto = function(playerNum, destination)
+                called = called + 1; assert(playerNum == 0 and destination == second)
+            end
+            P.zssSortButton.callback(P.zssSortButton.target)
+            assert(called == 1)
+            P.inventoryPane.inventory = W.container(nil, 'floor')
+            Z.clickLootSort(P); assert(called == 1)
+        ''')
+
+    def test_right_click_contains_settings_without_auto_sort(self):
+        self.check('''
+            local menu = {options = {}, addOption = function(self, text)
+                self.options[#self.options + 1] = text
+            end}
+            Z.onWorldMenu(0, menu, {W.object}, false)
+            assert(#menu.options == 1 and menu.options[1] == 'IGUI_ZSS_Settings')
+        ''')
 
     def test_vanilla_fallback_category_without_display_override(self):
         self.check('''

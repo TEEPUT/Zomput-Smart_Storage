@@ -27,4 +27,4 @@ function ZSS.onClientCommand(module, command, player, args)
 end
 
 Events.OnClientCommand.Add(ZSS.onClientCommand)
-print("[ZomputSmartStorage] Server rules loaded (1.1.0, Build 42.21).")
+print("[ZomputSmartStorage] Server rules loaded (1.1.1, Build 42.21).")

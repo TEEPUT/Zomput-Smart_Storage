@@ -125,6 +125,23 @@ end
 ISCollapsableWindow = {derive = function() return {} end}
 ISInventoryPane = {getActualItems = function(items) return items end}
 ISMouseDrag = {}
+UIFont = {Small = 'Small'}
+getTextManager = function() return {MeasureStringX = function(_, font, text) return #text * 6 end} end
+ISButton = {}
+function ISButton:new(x, y, width, height, title, target, callback)
+    local button = {x = x, y = y, width = width, height = height, title = title, target = target, callback = callback}
+    function button:initialise() end
+    function button:setVisible(value) self.visible = value end
+    function button:setEnable(value) self.enabled = value end
+    function button:setWidth(value) self.width = value end
+    function button:setHeight(value) self.height = value end
+    function button:setX(value) self.x = value end
+    function button:setY(value) self.y = value end
+    return button
+end
+ISInventoryPage = {drawText = function(self, text, x) self.drawnX = x end,
+    drawTextRight = function(self, text, x) self.drawnX = x end,
+    prerender = function(self) self:drawTextRight(self.title, 240, 1) end}
 getText = function(key, ...) return key end
 HaloTextHelper = {addText = function() end, getColorWhite = function() return {} end}
 ISInventoryTransferAction = {isValid = function() return true end}
