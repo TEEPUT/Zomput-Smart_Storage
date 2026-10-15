@@ -1,0 +1,16 @@
+# Only distributable mod sources, documentation and tests belong in this repository.
+dist/
+.local/
+*.log
+*.zip
+*.tar.gz
+*.jar
+*.class
+*.pem
+*.key
+.env
+.env.*
+__pycache__/
+.venv/
+.DS_Store
+Thumbs.db

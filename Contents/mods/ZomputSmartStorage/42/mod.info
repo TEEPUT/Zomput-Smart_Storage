@@ -1,0 +1,6 @@
+name=Zomput-Smart_Storage
+id=ZomputSmartStorage
+author=TEEPUT
+description=Container-specific item filters and safe sorting from the selected inventory tab. Build 42.21 multiplayer.
+versionMin=42.21
+versionMax=42.21.99
