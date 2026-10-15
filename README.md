@@ -41,16 +41,6 @@
 
 자동화 배포 파일에는 사용자별 경로, 서버 주소, 인증 정보가 필요하지 않습니다. 이 저장소에는 모드 소스·설명·테스트·배포 패키지 생성 도구만 포함합니다.
 
-## 개발 및 패키징
-
-```sh
-python -m pip install -r tests/requirements.txt
-python -m unittest discover -s tests -v
-python tools/package.py
-```
-
-생성된 `dist/Zomput-Smart_Storage/`를 게임의 `Zomboid/Workshop/`에 복사하면 창작마당 업로드 화면에서 선택할 수 있습니다. `dist/Zomput-Smart_Storage.zip`은 로컬 설치용 모드 폴더를 포함합니다. 공개 게시 전 게임의 Steam 계정 로그인 및 창작마당 약관 동의가 필요할 수 있습니다.
-
 ## 검증 범위
 
 Lua 5.1에서 실제 모드 로직을 실행하는 자동 테스트는 규칙 등록·삭제·동시 변경·접근 검사·선택 탭·용량·보호 아이템·드래그의 비이동 동작을 확인합니다. 게임 경계에는 모의 객체를 사용합니다. 실제 엔진 및 두 클라이언트 검증은 [테스트 체크리스트](docs/TESTING.md)에 별도로 기록합니다.
