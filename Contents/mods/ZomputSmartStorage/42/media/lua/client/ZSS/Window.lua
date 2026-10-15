@@ -2,6 +2,7 @@ require "ZSS/Core"
 require "ISUI/ISCollapsableWindow"
 require "ISUI/ISScrollingListBox"
 require "ISUI/ISButton"
+require "ISUI/ISComboBox"
 require "ISUI/ISMouseDrag"
 require "ISUI/ISInventoryPane"
 
@@ -25,7 +26,7 @@ function Window:new(playerNum, container)
         textManager:MeasureStringX(UIFont.Small, ZSS.text("DropHint")) + 28,
         textManager:MeasureStringX(UIFont.Small, ZSS.text("Occupied")) + 28)
     width = math.min(width, getPlayerScreenWidth(playerNum) - 24)
-    local height = math.max(430, textManager:getFontHeight(UIFont.Small) * 15 + 180)
+    local height = math.max(490, textManager:getFontHeight(UIFont.Small) * 16 + 200)
     height = math.min(height, getPlayerScreenHeight(playerNum) - 24)
     local x = getPlayerScreenLeft(playerNum) + (getPlayerScreenWidth(playerNum) - width) / 2
     local y = getPlayerScreenTop(playerNum) + (getPlayerScreenHeight(playerNum) - height) / 2
@@ -38,6 +39,7 @@ function Window:new(playerNum, container)
     o.resizable = false
     o.status = ZSS.text("Loading")
     o.allowed = {}
+    o.category = ""
     o.lastPoll = 0
     return o
 end
@@ -57,7 +59,18 @@ function Window:createChildren()
     ISCollapsableWindow.createChildren(self)
     local fontHeight = getTextManager():getFontHeight(UIFont.Small)
     self.lineHeight = fontHeight + 4
-    local top = self:titleBarHeight() + 10 + self.lineHeight * 3
+    local quickTop = self:titleBarHeight() + 10 + self.lineHeight * 3
+    local labelWidth = getTextManager():MeasureStringX(UIFont.Small, ZSS.text("QuickEdit")) + 10
+    local controlHeight = math.max(28, self.lineHeight + 4)
+    self.categoryCombo = ISComboBox:new(12 + labelWidth, quickTop, self.width - labelWidth - 114,
+        controlHeight, self, nil)
+    self.categoryCombo:initialise()
+    self:addChild(self.categoryCombo)
+    self.applyButton = ISButton:new(self.width - 92, quickTop, 80, controlHeight,
+        ZSS.text("Apply"), self, Window.onApplyCategory)
+    self.applyButton:initialise()
+    self:addChild(self.applyButton)
+    local top = quickTop + controlHeight + 12
     local bottom = 92
     self.list = ISScrollingListBox:new(12, top, self.width - 24, self.height - top - bottom)
     self.list:initialise()
@@ -79,6 +92,33 @@ function Window:createChildren()
     self.closeButton2 = ISButton:new(self.width - 132, self.height - 76, 120, 28, ZSS.text("Close"), self, Window.close)
     self.closeButton2:initialise()
     self:addChild(self.closeButton2)
+end
+
+function Window:refreshCategories(categories)
+    if not self.categoryCombo then return end
+    self.categoryCombo:clear()
+    self.categoryCombo:addOptionWithData(ZSS.text("IndividualMode"), "")
+    local rows, found = {}, false
+    for _, id in ipairs(categories or {}) do
+        local name = getTextOrNull("IGUI_ItemCat_" .. id) or id
+        rows[#rows + 1] = {id = id, name = name}
+        if id == self.category then found = true end
+    end
+    table.sort(rows, function(a, b)
+        return a.name == b.name and a.id < b.id or a.name < b.name
+    end)
+    for _, row in ipairs(rows) do
+        self.categoryCombo:addOptionWithData(ZSS.text("CategoryOnly", row.name), row.id)
+    end
+    if self.category ~= "" and not found then
+        self.categoryCombo:addOptionWithData(ZSS.text("UnavailableCategory", self.category), self.category)
+    end
+    self.categoryCombo:setSelectedData(self.category)
+end
+
+function Window:onApplyCategory()
+    local category = self.categoryCombo:getOptionData(self.categoryCombo.selected)
+    if category ~= nil and self.identity then self:request("setCategory", {category = category}) end
 end
 
 function Window:refreshList()
@@ -128,9 +168,11 @@ function Window:receive(result)
     self.pending = nil
     if result.target and result.allowed then
         local oldRevision = self.revision
+        local oldIdentity = self.identity
         self.identity = result.identity
         self.revision = result.revision
         self.allowed = result.allowed
+        self.category = result.category or ""
         -- The server response is authoritative. This is a local cache, never transmitted by the client.
         local object = self.container:getParent()
         local data = object:getModData()
@@ -140,10 +182,15 @@ function Window:receive(result)
             local key = tostring(ZSS.containerIndex(self.container))
             local state = root.containers[key] or {}
             state.identity, state.revision, state.allowed = self.identity, self.revision, self.allowed
+            state.category = self.category
             root.containers[key] = state
             ZSS.attach(self.container)
         end
-        if oldRevision ~= self.revision then self:refreshList() end
+        -- Polling must not discard a selection that has not been applied yet.
+        if oldRevision ~= self.revision or oldIdentity ~= self.identity then
+            self:refreshList()
+            self:refreshCategories(result.categories)
+        end
     end
     if result.code ~= "OK" then self.status = ZSS.text(result.code)
     else self.status = ZSS.text("Saved") end
@@ -161,6 +208,7 @@ function Window:acceptDrop()
         if focus.draggedItems then focus.draggedItems:reset() end
     end
     if self.pending or not self.identity then self.status = ZSS.text("Wait"); return true end
+    if self.category and self.category ~= "" then self.status = ZSS.text("CategoryMode"); return true end
     local ids, seen = {}, {}
     for _, item in ipairs(items) do
         if not item:getContainer() or item:getContainer():getOutermostContainer() ~= self.playerObj:getInventory() then
@@ -182,6 +230,7 @@ function Window:onMouseUp(x, y)
 end
 
 function Window:onDelete()
+    if self.category and self.category ~= "" then self.status = ZSS.text("CategoryMode"); return end
     local row = self.list.items[self.list.selected]
     if row and self.identity then self:request("remove", {fullType = row.item}) end
 end
@@ -197,10 +246,15 @@ function Window:prerender()
     self:drawText(ZSS.text("DataHint"), 12, top + self.lineHeight, 0.65, 0.8, 0.9, 1, UIFont.Small)
     self:drawText(ZSS.text("Rules", ZSS.count(self.allowed), ZSS.MAX_RULES), 12,
         top + self.lineHeight * 2, 0.8, 0.8, 0.8, 1, UIFont.Small)
+    self:drawText(ZSS.text("QuickEdit"), 12, top + self.lineHeight * 3 + 7,
+        0.9, 0.95, 1, 1, UIFont.Small)
     self:drawText(self.status or "", 12, self.height - 38, 1, 0.85, 0.55, 1, UIFont.Small)
     local canAccess = ZSS.canAccess(self.playerObj, self.container)
     self.deleteButton:setEnable(canAccess and not self.pending and self.identity ~= nil
+        and self.category == ""
         and self.list.items[self.list.selected] ~= nil)
+    self.categoryCombo:setEnabled(canAccess and not self.pending and self.identity ~= nil)
+    self.applyButton:setEnable(canAccess and not self.pending and self.identity ~= nil)
     self.refreshButton:setEnable(canAccess and not self.pending)
     local now = getTimestampMs()
     if self.pending and now - self.sentAt > 10000 then

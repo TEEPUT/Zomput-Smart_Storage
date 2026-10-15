@@ -13,7 +13,7 @@ class ModTests(unittest.TestCase):
     def setUp(self):
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.lua.execute((ROOT / 'tests/harness.lua').read_text(encoding='utf-8'))
-        for name in ['shared/ZSS/Core.lua', 'shared/ZSS/Service.lua',
+        for name in ['shared/ZSS/Categories.lua', 'shared/ZSS/Core.lua', 'shared/ZSS/Service.lua',
                      'client/ZSS/Window.lua', 'client/ZSS/Client.lua']:
             self.lua.execute((LUA / name).read_text(encoding='utf-8'))
         self.lua.execute('W = makeWorld(); Z = ZomputSmartStorage')
@@ -276,6 +276,168 @@ class ModTests(unittest.TestCase):
         self.check('''
             getSpecificPlayer = function() return W.player end
             getPlayerInventory = function() return {inventoryPane = {inventory = W.selected or W.inventory}} end
+        ''')
+
+    def test_discovers_all_loaded_and_dynamic_categories(self):
+        self.check('''
+            local r = Z.handle(W.player, 'read', readArgs(W))
+            local found = {}; for _, id in ipairs(r.categories) do assert(not found[id]); found[id] = true end
+            for _, id in ipairs({'FoodP', 'ToolElec', 'WepFire', 'LitS', 'ModdedCategory',
+                'CustomOverride', 'Fuel', 'MediaS', 'MediaV'}) do assert(found[id], id) end
+            assert(#r.categories == 9)
+        ''')
+
+    def test_category_filters_every_matching_type_and_preserves_manual_rules(self):
+        self.check('''
+            local apple = W.item('Base.Apple', W.inventory)
+            local args = mutateArgs(W); args.itemIds = {apple.id}
+            Z.handle(W.player, 'add', args)
+            args.revision = 1; args.category = 'ToolElec'
+            local r = Z.handle(W.player, 'setCategory', args)
+            assert(r.code == 'OK' and r.category == 'ToolElec' and r.allowed['Base.Apple'])
+            local tool = W.item('Mod.AnyTool'); tool.category = 'ToolElec'
+            assert(W.destination:isItemAllowed(tool) and not W.destination:isItemAllowed(apple))
+            tool.fullType = 'Other.NewTool'; assert(W.destination:isItemAllowed(tool))
+            args.revision = r.revision; args.category = ''
+            r = Z.handle(W.player, 'setCategory', args)
+            assert(r.code == 'OK' and r.allowed['Base.Apple'])
+            assert(W.destination:isItemAllowed(apple) and not W.destination:isItemAllowed(tool))
+        ''')
+
+    def test_category_change_requires_empty_container_and_noop_is_safe(self):
+        self.check('''
+            local args = mutateArgs(W); args.category = 'FoodP'
+            local r = Z.handle(W.player, 'setCategory', args)
+            W.item('Base.Apple', W.destination)
+            args.revision = r.revision
+            assert(Z.handle(W.player, 'setCategory', args).code == 'OK')
+            args.category = 'WepFire'
+            assert(Z.handle(W.player, 'setCategory', args).code == 'CategoryOccupied')
+            args.category = ''
+            assert(Z.handle(W.player, 'setCategory', args).code == 'CategoryOccupied')
+            assert(Z.state(W.destination).category == 'FoodP' and W.object.syncs == 1)
+        ''')
+
+    def test_category_rejects_unknown_payloads_and_stale_changes(self):
+        self.check('''
+            local args = mutateArgs(W)
+            for _, value in ipairs({'NotACategory', string.rep('x', 257), true, {}}) do
+                args.category = value
+                assert(Z.handle(W.player, 'setCategory', args).code == 'UnknownCategory')
+            end
+            args.category = 'ModdedCategory'
+            assert(Z.handle(W.player, 'setCategory', args).code == 'OK')
+            args.category = 'Fuel'
+            assert(Z.handle(W.player, 'setCategory', args).code == 'Conflict')
+        ''')
+
+    def test_category_blocks_manual_edits_and_consumes_drag_without_moving(self):
+        self.check('''
+            local item = W.item('Base.Apple', W.inventory)
+            local args = mutateArgs(W); args.category = 'FoodP'
+            local r = Z.handle(W.player, 'setCategory', args)
+            args.revision = r.revision; args.itemIds = {item.id}; args.fullType = item.fullType
+            assert(Z.handle(W.player, 'add', args).code == 'CategoryMode')
+            assert(Z.handle(W.player, 'remove', args).code == 'CategoryMode')
+            ISMouseDrag.dragging = {item}
+            local window = {identity = 'id', category = 'FoodP', request = function() error('no send') end}
+            Z.Window.acceptDrop(window)
+            assert(not ISMouseDrag.dragging and window.status == 'IGUI_ZSS_CategoryMode')
+            assert(item:getContainer() == W.inventory)
+        ''')
+
+    def test_missing_dependency_or_category_fails_closed(self):
+        self.check('''
+            local args = mutateArgs(W); args.category = 'FoodP'
+            Z.handle(W.player, 'setCategory', args)
+            local item = W.item('Base.Apple')
+            assert(W.destination:isItemAllowed(item))
+            getActivatedMods = function() return {contains = function() return false end} end
+            assert(Z.handle(W.player, 'read', args).code == 'Dependency')
+            assert(not W.destination:isItemAllowed(item))
+            getActivatedMods = function() return {contains = function() return true end} end
+            Z.state(W.destination).category = 'RemovedCategory'
+            assert(not W.destination:isItemAllowed(item))
+        ''')
+
+    def test_fluids_media_and_reload_use_current_category(self):
+        self.check('''
+            local args = mutateArgs(W); args.category = 'Fuel'
+            Z.handle(W.player, 'setCategory', args)
+            local bottle = W.item('Base.Bottle'); bottle.fluidCategory = 'Fuel'
+            assert(W.destination:isItemAllowed(bottle))
+            bottle.fluidCategory = 'FoodP'; assert(not W.destination:isItemAllowed(bottle))
+            args.revision = 1; args.category = 'MediaS'
+            Z.handle(W.player, 'setCategory', args)
+            local vhs = W.item('Base.VHS'); vhs.mediaKind = 'Retail-VHS'; vhs.media = true
+            assert(W.destination:isItemAllowed(vhs))
+            W.destination.accept = nil; Z.onSquareLoaded(W.square)
+            assert(W.destination.accept == Z.CALLBACK and W.destination:isItemAllowed(vhs))
+        ''')
+
+    def test_category_sort_and_queued_action_recheck(self):
+        self.setup_sort()
+        self.check('''
+            local args = mutateArgs(W); args.category = 'ToolElec'
+            Z.handle(W.player, 'setCategory', args)
+            local good = W.item('Base.Tool', W.inventory); good.category = 'ToolElec'
+            W.item('Base.Apple', W.inventory)
+            Z.sortInto(0, W.destination)
+            assert(#queuedActions == 1 and queuedActions[1].item == good)
+            assert(queuedActions[1]:isValid())
+            args.revision = 1; args.category = 'FoodP'; Z.handle(W.player, 'setCategory', args)
+            assert(not queuedActions[1]:isValid())
+        ''')
+
+    def test_combo_includes_all_categories_and_uses_localized_labels(self):
+        self.check('''
+            getTextOrNull = function(key) return 'localized:' .. key end
+            local combo = {options = {}}
+            function combo:clear() self.options = {} end
+            function combo:addOptionWithData(text, data) self.options[#self.options+1] = {text=text, data=data} end
+            function combo:setSelectedData(data) self.selectedData = data end
+            local window = {categoryCombo = combo, category = 'ToolElec'}
+            Z.Window.refreshCategories(window, Z.categoryCatalog())
+            assert(#combo.options == 10 and combo.selectedData == 'ToolElec')
+            local found = {}; for _, option in ipairs(combo.options) do found[option.data] = true end
+            assert(found.ToolElec and found.ModdedCategory and found.MediaS and found.Fuel)
+            window.category = 'RemovedCategory'
+            Z.Window.refreshCategories(window, {})
+            assert(#combo.options == 2 and combo.selectedData == 'RemovedCategory')
+        ''')
+
+    def test_poll_preserves_unapplied_selection_and_caches_server_category(self):
+        self.check('''
+            local window = {pending = 1, revision = 2, identity = 'id', container = W.destination,
+                refreshList = function(self) self.listRefreshed = true end,
+                refreshCategories = function(self) self.comboRefreshed = true end}
+            local result = {requestId = 1, revision = 2, identity = 'id', target = {},
+                allowed = {}, category = 'FoodP', categories = {'FoodP'}, code = 'OK'}
+            Z.Window.receive(window, result)
+            assert(not window.comboRefreshed and not window.listRefreshed)
+            assert(Z.state(W.destination).category == 'FoodP')
+            window.pending = 2; result.requestId = 2; result.identity = 'replacement'
+            Z.Window.receive(window, result)
+            assert(window.comboRefreshed and window.listRefreshed)
+        ''')
+
+    def test_required_mod_metadata(self):
+        info = (LUA.parents[1] / 'mod.info').read_text(encoding='utf-8')
+        self.assertIn('require=BetterSortCC', info.splitlines())
+
+    def test_vanilla_fallback_category_without_display_override(self):
+        self.check('''
+            getScriptManager = function() return {getAllItems = function() return {
+                size = function() return 1 end,
+                get = function() return {getDisplayCategory = function() end,
+                    InstanceItem = function() return {getCategory = function() return 'Item' end} end} end}
+            end} end
+            local _, known = Z.categoryCatalog(); assert(known.Item)
+            local item = W.item('Mod.Plain')
+            item.getDisplayCategory = function() end
+            item.getCategory = function() return 'Item' end
+            assert(Z.itemCategory(item) == 'Item')
+            assert(#W.inventory.items == 0 and #W.destination.items == 0)
         ''')
 
     def test_sort_uses_selected_bag_only(self):

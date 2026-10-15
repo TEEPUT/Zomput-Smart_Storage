@@ -39,17 +39,19 @@ end
 local function snapshot(container, args, code)
     local state = ZSS.state(container)
     local result = {requestId = args.requestId, target = ZSS.describe(container), code = code or "OK",
-        identity = state.identity, revision = state.revision, allowed = {}}
+        identity = state.identity, revision = state.revision, allowed = {},
+        category = state.category or "", categories = ZSS.categoryCatalog()}
     for key, value in pairs(state.allowed) do if value == true then result.allowed[key] = true end end
     return result
 end
 
 -- Pure command service: multiplayer server and single player use the same validation.
 function ZSS.handle(player, command, args)
-    if command ~= "read" and command ~= "add" and command ~= "remove" then return nil end
+    if command ~= "read" and command ~= "add" and command ~= "remove" and command ~= "setCategory" then return nil end
     if type(args) ~= "table" or not ZSS.isInteger(args.requestId, 1, 2147483647) then
         return {code = "Invalid"}
     end
+    if not ZSS.betterSortingReady() then return {requestId = args.requestId, code = "Dependency"} end
     local container, errorCode = resolve(player, args)
     if not container then return {requestId = args.requestId, code = errorCode} end
     local state = ensureState(container)
@@ -62,7 +64,21 @@ function ZSS.handle(player, command, args)
         return snapshot(container, args, "Conflict")
     end
     local changed = false
-    if command == "add" then
+    if command == "setCategory" then
+        local _, known = ZSS.categoryCatalog()
+        if type(args.category) ~= "string" or #args.category > 256
+            or (args.category ~= "" and not known[args.category]) then
+            return snapshot(container, args, "UnknownCategory")
+        end
+        if args.category == (state.category or "") then return snapshot(container, args) end
+        -- Switching modes is explicit and requires an empty container. Nothing
+        -- is moved, and saved individual rules remain available when switching back.
+        if container:getItems():size() > 0 then return snapshot(container, args, "CategoryOccupied") end
+        state.category = args.category
+        changed = true
+    elseif state.category and state.category ~= "" then
+        return snapshot(container, args, "CategoryMode")
+    elseif command == "add" then
         if type(args.itemIds) ~= "table" then return snapshot(container, args, "Invalid") end
         local count, additions = 0, {}
         -- Validate the entire batch before committing any of it.

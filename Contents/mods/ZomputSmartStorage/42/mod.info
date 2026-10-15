@@ -1,6 +1,8 @@
 name=Zomput-Smart_Storage
 id=ZomputSmartStorage
+require=BetterSortCC
 author=TEEPUT
-description=Container-specific item filters and safe sorting from the selected inventory tab. Build 42.21 multiplayer.
+modversion=1.1.0
+description=Requires Better Sorting. All-category and individual item filters with safe sorting from the selected inventory tab. Build 42.21 multiplayer.
 versionMin=42.21
 versionMax=42.21.99

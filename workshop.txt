@@ -1,6 +1,6 @@
 version=1
 id=3820062699
 title=Zomput-Smart_Storage
-description=Build 42.21 multiplayer smart storage. Sort the selected inventory tab into world containers. Drag items into per-container settings to register their types without moving items. Occupied item rules cannot be deleted. Korean and English UI.
+description=Build 42.21 multiplayer smart storage. Requires Better Sorting (2313387159 / BetterSortCC). Quick setup supports every loaded item category. Individual item rules are preserved. Sort the selected inventory tab into world containers. Korean and English UI.
 tags=Build 42;Interface;Multiplayer
 visibility=public

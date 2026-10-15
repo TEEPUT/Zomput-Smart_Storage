@@ -1,4 +1,5 @@
 -- Shared rules. No item creation, removal or inventory replacement occurs here.
+require "ZSS/Categories"
 ZomputSmartStorage = ZomputSmartStorage or {}
 local ZSS = ZomputSmartStorage
 ZSS.MODULE = "ZomputSmartStorage"
@@ -47,6 +48,10 @@ end
 function ZSS.allows(container, item)
     if not item then return false end
     local state = ZSS.state(container)
+    if state and state.category and state.category ~= "" then
+        local _, known = ZSS.categoryCatalog()
+        return known[state.category] == true and ZSS.itemCategory(item) == state.category
+    end
     return not state or ZSS.count(state.allowed) == 0 or state.allowed[item:getFullType()] == true
 end
 
@@ -76,7 +81,7 @@ function ZSS.attach(container)
     local state = ZSS.state(container)
     if not state then return end
     local current = container:getAcceptItemFunction()
-    if ZSS.count(state.allowed) > 0 then
+    if (state.category and state.category ~= "") or ZSS.count(state.allowed) > 0 then
         if current ~= ZSS.CALLBACK then
             state.previousAccept = current ~= "" and current or nil
             container:setAcceptItemFunction(ZSS.CALLBACK)

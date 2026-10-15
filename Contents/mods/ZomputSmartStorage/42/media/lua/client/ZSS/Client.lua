@@ -105,4 +105,4 @@ end
 
 Events.OnPreFillWorldObjectContextMenu.Add(ZSS.onWorldMenu)
 Events.OnFillInventoryObjectContextMenu.Add(ZSS.onInventoryMenu)
-print("[ZomputSmartStorage] Client UI loaded (1.0.0, Build 42.21).")
+print("[ZomputSmartStorage] Client UI loaded (1.1.0, Build 42.21).")

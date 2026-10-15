@@ -3,6 +3,8 @@
 
 [b]BUILD 42.21 / 42.21.0[/b]  |  [b]멀티플레이 대응[/b]  |  [b]한국어 · English[/b]
 
+[b]필수 선행 모드:[/b] [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2313387159]Better Sorting[/url] — 서버와 모든 클라이언트에서 함께 활성화하세요.
+
 [hr][/hr]
 [h2]선택한 가방에서, 원하는 보관함으로[/h2]
 등가방을 보고 있다면 등가방만, 앞가방을 보고 있다면 앞가방만.
@@ -25,7 +27,11 @@
 [*][b]자동정리[/b] — 같은 보관함을 우클릭하고 자동정리를 누릅니다. 허용된 아이템만 이동 예약됩니다.
 [/olist]
 
-[b]빈 등록 목록[/b]은 종류 제한이 없는 상태입니다. 하나 이상 등록하면 해당 종류만 새로 넣을 수 있습니다. 일반 드래그 이동에도 같은 규칙이 적용됩니다.
+[h2]NEW · 전체 분류 간편 설정[/h2]
+[b]간편 설정 → 분류명만 허용 → 적용[/b]으로 분류 전체를 허용하세요.
+총기·음식·스킬북은 예시입니다. 의류·공구·제작 재료를 포함해 [b]게임에 로드된 전체 분류[/b]를 자동으로 표시하며, 다른 모드가 추가한 분류도 지원합니다. 분류명은 게임 언어에 맞춰 표시합니다.
+
+분류 모드에서는 선택한 분류만 허용합니다. 기존 개별 목록은 보존되며 [b]개별 아이템 설정[/b]으로 돌아오면 다시 적용합니다. 개별 모드에서 빈 목록은 종류 제한이 없는 상태입니다. 분류나 모드를 변경하려면 보관함의 아이템을 먼저 모두 꺼내세요. 일반 드래그 이동에도 같은 규칙이 적용됩니다.
 
 [hr][/hr]
 [h2]실수에 대비한 보호 동작[/h2]
@@ -46,14 +52,16 @@
 [/list]
 
 [h2]검증 상태[/h2]
-자동 테스트 [b]29개 통과[/b]. 실제 [b]42.21.0 전용 서버 엔진[/b]에서 종류 정보 등록, 입고 허용·거부, 삭제 방어, 필터 재적용 및 Kahlua 문법을 검사했습니다.
+자동 테스트 [b]41개 통과[/b]. 종류 정보 등록, 분류 검색·선택, 입고 허용·거부, 변경 방어, 동시 수정 및 이동 예약 검사를 포함합니다. 실제 엔진 검사 기록은 소스 저장소에서 확인할 수 있습니다.
 [b]게임 화면 조작과 실제 2인 접속 세션 검증은 아직 미완료[/b]입니다.
 
 [hr][/hr]
 [h2]ENGLISH · QUICK GUIDE[/h2]
 Select a tab in your own inventory. Right-click a nearby world storage container and choose [b]Auto sort[/b] to queue allowed items from that tab only.
 
-Open [b]Configure storage items[/b] and drag your items into the list to register their types. Registration saves metadata only; no actual items move. An empty list means unrestricted storage. Remove matching stored items before deleting their rule.
+Requires [b]Better Sorting[/b] on the server and every client. Open [b]Configure storage items[/b], choose any loaded category under [b]Quick setup[/b], and click [b]Apply[/b] to allow that entire category. All loaded categories are discovered automatically, including other mods' categories. Empty the container before changing category or mode.
+
+Choose [b]Individual item rules[/b] to register types by dragging your items into the list. Registration saves metadata only; no actual items move. Individual rules are preserved while category mode is active. An empty individual list means unrestricted storage. Remove matching stored items before deleting their rule.
 
 Favorites, worn and held items are excluded from auto sort. Capacity, access and simultaneous edits are checked. Install the mod on both the server and each client. GUI and real two-player session verification remain pending.
 

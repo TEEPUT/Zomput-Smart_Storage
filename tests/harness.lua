@@ -12,6 +12,20 @@ function ZombRand() return 123 end
 local function list(items)
     return {size = function() return #items end, get = function(_, i) return items[i + 1] end}
 end
+function getActivatedMods() return {contains = function(_, id) return id == 'BetterSortCC' end} end
+BScats = {{category = 'WepFire'}, {category = 'LitS'}}
+BSfluidCats = {{category = 'Fuel'}}
+BSoverride = {{category = 'CustomOverride'}}
+function BSgetCategory(item) return item.fluidCategory end
+function BSupdateMedia(container)
+    local items = container:getAllEvalRecurse()
+    for i = 0, items:size() - 1 do items:get(i).category = 'MediaS' end
+end
+local scripts = {}
+for _, category in ipairs({'FoodP', 'ToolElec', 'WepFire', 'LitS', 'FoodP', 'ModdedCategory'}) do
+    scripts[#scripts + 1] = {getDisplayCategory = function() return category end}
+end
+function getScriptManager() return {getAllItems = function() return list(scripts) end} end
 function makeWorld()
     local square = {x = 10, y = 20, z = 0, objects = {}}
     function square:getX() return self.x end
@@ -80,6 +94,9 @@ function makeWorld()
         function i:getIsCraftingConsumed() return self.consumed or false end
         function i:getUnequippedWeight() return self.weight end
         function i:getInventory() return self.bag end
+        function i:getDisplayCategory() return self.category or 'FoodP' end
+        function i:getScriptItem() return {getRecordedMediaCat = function() return self.mediaKind end} end
+        function i:getMediaData() return self.media end
         if target then table.insert(target.items, i) end
         return i
     end
